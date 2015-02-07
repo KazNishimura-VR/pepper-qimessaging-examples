@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ChoregrapheProject xmlns="http://www.aldebaran-robotics.com/schema/choregraphe/project.xsd" xar_version="3">
+    <Box name="root" id="-1" localization="8" tooltip="Root box of Choregraphe&apos;s behavior. Highest level possible." x="0" y="0">
+        <bitmap>media/images/box/root.png</bitmap>
+        <script language="4">
+            <content>
+                <![CDATA[]]>
+</content>
+        </script>
+        <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+        <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+        <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+        <Input name="ALTabletService/message" type="0" type_size="1" nature="4" stm_value_name="ALTabletService/message" inner="1" tooltip="ALTabletService/message desc" id="4" />
+        <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="ボックス動作の終了時に信号を送る。" id="5" />
+        <Timeline enable="0">
+            <BehaviorLayer name="behavior_layer1">
+                <BehaviorKeyframe name="keyframe1" index="1">
+                    <Diagram>
+                        <Box name="Show App" id="2" localization="8" tooltip="Loads the application on the tablet, if it exists, and displays the webview.&#x0A;&#x0A;V1.0.0&#x0A;" x="245" y="47">
+                            <bitmap>media/images/box/root.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[
+
+class MyClass(GeneratedClass):
+
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        self.isRunning = False
+        self.frameManager = None
+        try:
+            self.frameManager = ALProxy("ALFrameManager")
+        except Exception as e:
+            self.logger.error(e)
+
+    def onUnload(self):
+        self.isRunning = False
+
+    def _getTabletService(self):
+        tabletService = None
+        try:
+            tabletService = self.session().service("ALTabletService")
+        except Exception as e:
+            self.logger.error(e)
+        return tabletService
+
+    def _getAppName(self):
+        import os
+        if self.frameManager:
+            behaviorPath = os.path.normpath(self.frameManager.getBehaviorPath(self.behaviorId))
+            if os.path.isdir(behaviorPath):
+               behaviorPath = os.path.join(behaviorPath, "")
+            appsFolderFragment = os.path.join("PackageManager", "apps")
+            if not (appsFolderFragment in behaviorPath):
+                    self.logger.error("appsFolderFragment is not in behaviorPath")
+                    return None
+            fragment = behaviorPath.split(appsFolderFragment, 1)[1]
+            fragment = fragment.split("/")[1]
+            return fragment.lstrip("\\/")
+        else:
+            self.logger.warning("No ALFrameManager")
+            return None
+
+    def onInput_onStart(self):
+        if self.isRunning:
+            return # already running, nothing to do
+        self.isRunning = True
+        # We create TabletService here in order to avoid
+        # problems with connections and disconnections of the tablet during the life of the application
+        tabletService = self._getTabletService()
+        appName = self._getAppName()
+        state = False
+        if appName:
+            if tabletService:
+                if tabletService.loadApplication(appName):
+                    self.logger.info("Successfully set application: %s" % appName)
+                    tabletService.showWebview()
+                    state = True
+                else:
+                    self.logger.warning("Got tablet service, but failed to set application: %s" % appName)
+            else:
+                self.logger.warning("Couldn't find tablet service, so can't set application: %s" % appName)
+        if state:
+            self.onSuccess()
+        else:
+            self.onFailure()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                            <Output name="onSuccess" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished successfully." id="3" />
+                            <Output name="onFailure" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished unsuccessfully." id="4" />
+                        </Box>
+                        <Box name="Log" id="1" localization="8" tooltip="Prompt the message in the debug window. You can set a prefix and a priority&#x0A;for the message in the parameters." x="243" y="155">
+                            <bitmap>media/images/box/print.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        #~ puts code for box initialization here
+        pass
+
+    def onUnload(self):
+        #~ puts code for box cleanup here
+        pass
+
+    def onInput_message(self, p):
+        sPriority = self.getParameter("Priority")
+        sMessage = self.getParameter("Message prefix")
+        if( sMessage != "" and p != None ):
+            sMessage += ": "
+        if( p != None ):
+            sMessage += str(p)
+        if( sPriority == "Fatal" ):
+            self.logger.fatal( sMessage )
+        elif( sPriority == "Error" ):
+            self.logger.error( sMessage )
+        elif( sPriority == "Warning" ):
+            self.logger.warning( sMessage )
+        elif( sPriority == "Info" ):
+            self.logger.info( sMessage )
+        elif( sPriority == "Debug" ):
+            self.logger.debug( sMessage )
+        self.onDone()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="message" type="0" type_size="1" nature="1" inner="0" tooltip='The message to print or a &quot;Bang&quot; to only print the message set as parameter.' id="2" />
+                            <Output name="onDone" type="1" type_size="1" nature="2" inner="0" tooltip="Signal sent when box behavior is finished." id="3" />
+                            <Parameter name="Message prefix" inherits_from_parent="0" content_type="3" value="Tablet" default_value="Message text" custom_choice="0" tooltip="Enter the text you want to print before the input message." id="4" />
+                            <Parameter name="Priority" inherits_from_parent="0" content_type="3" value="Info" default_value="Info" custom_choice="0" tooltip="Enter the priority of your message. If you select error, the box will get red when it will be stimulated." id="5">
+                                <Choice value="Fatal" />
+                                <Choice value="Error" />
+                                <Choice value="Warning" />
+                                <Choice value="Info" />
+                                <Choice value="Debug" />
+                            </Parameter>
+                        </Box>
+                        <Box name="Basic Awareness" id="4" localization="8" tooltip="This box is an interface to the module ALBasicAwareness.&#x0A;&#x0A;It is a simple way to make the robot establish and keep eye contact with people.&#x0A;&#x0A;V1.1.0" x="564" y="51">
+                            <bitmap>media/images/box/tracker/basicawareness.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        #put initialization code here
+        try:
+            self.awareness = ALProxy('ALBasicAwareness')
+        except Exception as e:
+            self.awareness = None
+            self.logger.error(e)
+
+        self.memory = ALProxy('ALMemory')
+
+        self.isRunning = False
+        self.trackedHuman = -1
+
+        import threading
+        self.subscribingLock = threading.Lock()
+
+        self.BIND_PYTHON(self.getName(), "setParameter")
+
+
+    def onUnload(self):
+        if self.isRunning:
+            if self.awareness:
+                self.awareness.stopAwareness()
+                self.setALMemorySubscription(False)
+            self.isRunning = False
+
+
+    def onInput_onStart(self):
+        if self.isRunning:
+            return # already running, nothing to do
+
+        self.isRunning = True
+        self.trackedHuman = -1
+        if self.awareness:
+            self.awareness.setEngagementMode(self.getParameter('Engagement Mode'))
+            self.awareness.setTrackingMode(self.getParameter('Tracking Mode'))
+            self.awareness.setStimulusDetectionEnabled('Sound', self.getParameter('Sound Stimulus'))
+            self.awareness.setStimulusDetectionEnabled('Movement', self.getParameter('Movement Stimulus'))
+            self.awareness.setStimulusDetectionEnabled('People', self.getParameter('People Stimulus'))
+            self.awareness.setStimulusDetectionEnabled('Touch', self.getParameter('Touch Stimulus'))
+            self.setALMemorySubscription(True)
+            self.awareness.startAwareness()
+
+
+
+    def onInput_onStop(self):
+        if not self.isRunning:
+            return # already stopped, nothing to do
+
+        self.onUnload()
+        self.onStopped()
+
+
+    def setParameter(self, parameterName, newValue):
+        GeneratedClass.setParameter(self, parameterName, newValue)
+
+        if self.awareness:
+            if parameterName == 'Sound Stimulus':
+                self.awareness.setStimulusDetectionEnabled('Sound', newValue)
+            elif parameterName == 'Movement Stimulus':
+                self.awareness.setStimulusDetectionEnabled('Movement', newValue)
+            elif parameterName == 'People Stimulus':
+                self.awareness.setStimulusDetectionEnabled('People', newValue)
+            elif parameterName == 'Touch Stimulus':
+                self.awareness.setStimulusDetectionEnabled('Touch', newValue)
+
+
+    # callbacks for ALBasicAwareness events
+    def onStimulusDetected(self, eventName, stimulusName, subscriberIdentifier):
+        self.StimulusDetected(stimulusName)
+
+    def onHumanTracked(self, eventName, humanID, subscriberIdentifier):
+        self.trackedHuman = humanID
+        self.HumanTracked(humanID)
+
+    def onHumanLost(self, eventName, subscriberIdentifier):
+        self.HumanLost(self.trackedHuman)
+        self.trackedHuman = -1
+
+
+    def setALMemorySubscription(self, subscribe):
+        self.subscribingLock.acquire()
+        if subscribe:
+            self.memory.subscribeToEvent('ALBasicAwareness/StimulusDetected', self.getName(), 'onStimulusDetected')
+            self.memory.subscribeToEvent('ALBasicAwareness/HumanTracked', self.getName(), 'onHumanTracked')
+            self.memory.subscribeToEvent('ALBasicAwareness/HumanLost', self.getName(), 'onHumanLost')
+        else:
+            self.memory.unsubscribeToEvent('ALBasicAwareness/StimulusDetected', self.getName())
+            self.memory.unsubscribeToEvent('ALBasicAwareness/HumanTracked', self.getName())
+            self.memory.unsubscribeToEvent('ALBasicAwareness/HumanLost', self.getName())
+
+        self.subscribingLock.release()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Starts the Basic Awareness with the given Engagement and Tracking mode parameters, using the given stimuli." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Stops the Basic Awareness." id="3" />
+                            <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                            <Output name="StimulusDetected" type="3" type_size="1" nature="2" inner="0" tooltip="This output is stimulated when BasicAwareness detects a stimulus amongst the tracked stimulus.&#x0A;&#x0A;The output data is the stimulus&apos; name." id="5" />
+                            <Output name="HumanTracked" type="2" type_size="1" nature="2" inner="0" tooltip="This output is triggered when ALBasicAwareness detects a stimulus that is confirmed to be a human.&#x0A;&#x0A;The output data is the ID corresponding to the tracked human. It is shared with PeoplePerception and can be used there. This output is triggered with -1 if ALBasicAwareness tried to detect a human but failed." id="6" />
+                            <Output name="HumanLost" type="2" type_size="1" nature="2" inner="0" tooltip="This output is triggered when the human currently tracked is lost.&#x0A;&#x0A; The output data is the ID corresponding to the lost human. It can be reused in PeoplePerception." id="7" />
+                            <Parameter name="Engagement Mode" inherits_from_parent="0" content_type="3" value="FullyEngaged" default_value="Unengaged" custom_choice="0" tooltip='The engagement mode specifies how &quot;focused&quot; the robot is on the engaged person.' id="8">
+                                <Choice value="Unengaged" />
+                                <Choice value="FullyEngaged" />
+                                <Choice value="SemiEngaged" />
+                            </Parameter>
+                            <Parameter name="Tracking Mode" inherits_from_parent="0" content_type="3" value="Head" default_value="Head" custom_choice="0" tooltip="The tracking mode describes how the robot keeps eye contact with an engaged person." id="9">
+                                <Choice value="Head" />
+                                <Choice value="BodyRotation" />
+                                <Choice value="WholeBody" />
+                            </Parameter>
+                            <Parameter name="Sound Stimulus" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="10" />
+                            <Parameter name="Movement Stimulus" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="11" />
+                            <Parameter name="People Stimulus" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="12" />
+                            <Parameter name="Touch Stimulus" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="13" />
+                        </Box>
+                        <Box name="Raise Event" id="3" localization="8" tooltip="Stores in NAOqi&apos;s shared memory the given value at the given key, and spreads the event to all its subscribers." x="737" y="55">
+                            <bitmap>media/images/box/sensors/STM.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+        pass
+
+    def onLoad(self):
+        self.memory = ALProxy("ALMemory")
+
+    def onUnload(self):
+        self.memory = None
+
+    def onInput_onStart(self, p):
+        self.memory.raiseEvent(self.getParameter("key"), p)
+        self.onStopped(p)
+
+    def onInput_onStop(self):
+        self.onUnload() #~ it is recommended to call onUnload of this box in a onStop method, as the code written in onUnload is used to stop the box as well
+        pass]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="0" type_size="1" nature="2" inner="0" tooltip="Receives the value to be inserted as an event in ALMemory." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                            <Output name="onStopped" type="0" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished. It contains the inserted value in ALMemory." id="4" />
+                            <Output name="onError" type="3" type_size="1" nature="1" inner="0" tooltip="Output when error is raised by the behavior. Contains the error message." id="5" />
+                            <Parameter name="key" inherits_from_parent="0" content_type="3" value="PepperQiMessaging/totablet" default_value="MyApplication/MyData" custom_choice="0" tooltip="" id="6" />
+                        </Box>
+                        <Box name="Wait" id="6" localization="8" tooltip="Wait a moment before sending a signal on the output. &#x0A;Can be stopped anytime. &#x0A;Stimulating the input again before output is activated restarts the waiting period.&#x0A;" x="396" y="45">
+                            <bitmap>media/images/box/wait.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.waiting = None
+
+    def onUnload(self):
+        self.cancelWaiting()
+
+    def triggerOutput(self):
+        self.timerOutput()
+
+    def cancelWaiting(self):
+        if self.waiting:
+            self.waiting.cancel()
+        self.waiting = None
+
+    def onInput_onStart(self):
+        self.cancelWaiting()
+        import qi
+        self.waiting = qi.async(self.triggerOutput, delay=int(self.getParameter("Timeout (s)") * 1000 * 1000))
+
+    def onInput_onStop(self):
+        if self.getParameter("Trigger timerOutput if cancelled") and self.waiting and self.waiting.isRunning():
+            self.timerOutput()
+        self.onUnload()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Start the Wait box with the configured timeout value." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Stop the wait and stimulate the output." id="3" />
+                            <Output name="timerOutput" type="1" type_size="1" nature="1" inner="0" tooltip="Send a bang once time set in parameters is elapsed, or if the box is stopped and the appropriate parameter is set." id="4" />
+                            <Parameter name="Timeout (s)" inherits_from_parent="0" content_type="2" value="3" default_value="1" min="0" max="5000" tooltip="Duration the box waits before stimulating the output." id="5" />
+                            <Parameter name="Trigger timerOutput if cancelled" inherits_from_parent="0" content_type="0" value="0" default_value="1" tooltip="If the box is currently waiting and cancelled, output will be stimulated." id="6" />
+                        </Box>
+                        <Link inputowner="2" indexofinput="2" outputowner="0" indexofoutput="2" />
+                        <Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="4" />
+                        <Link inputowner="3" indexofinput="2" outputowner="4" indexofoutput="6" />
+                        <Link inputowner="6" indexofinput="2" outputowner="2" indexofoutput="3" />
+                        <Link inputowner="4" indexofinput="2" outputowner="6" indexofoutput="4" />
+                    </Diagram>
+                </BehaviorKeyframe>
+            </BehaviorLayer>
+        </Timeline>
+    </Box>
+</ChoregrapheProject>

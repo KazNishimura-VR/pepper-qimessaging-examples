@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ChoregrapheProject xmlns="http://www.aldebaran-robotics.com/schema/choregraphe/project.xsd" xar_version="3">
+    <Box name="root" id="-1" localization="8" tooltip="Root box of Choregraphe&apos;s behavior. Highest level possible." x="0" y="0">
+        <bitmap>media/images/box/root.png</bitmap>
+        <script language="4">
+            <content>
+                <![CDATA[]]>
+</content>
+        </script>
+        <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+        <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+        <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+        <Input name="ALTabletService/message" type="0" type_size="1" nature="4" stm_value_name="ALTabletService/message" inner="1" tooltip="ALTabletService/message desc" id="4" />
+        <Input name="PepperQiMessaging/fromtablet" type="0" type_size="1" nature="4" stm_value_name="PepperQiMessaging/fromtablet" inner="1" tooltip="PepperQiMessaging/fromtablet desc" id="5" />
+        <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="ボックス動作の終了時に信号を送る。" id="6" />
+        <Timeline enable="0">
+            <BehaviorLayer name="behavior_layer1">
+                <BehaviorKeyframe name="keyframe1" index="1">
+                    <Diagram>
+                        <Box name="Show App" id="2" localization="8" tooltip="Loads the application on the tablet, if it exists, and displays the webview.&#x0A;&#x0A;V1.0.0&#x0A;" x="245" y="47">
+                            <bitmap>media/images/box/root.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[
+
+class MyClass(GeneratedClass):
+
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        self.isRunning = False
+        self.frameManager = None
+        try:
+            self.frameManager = ALProxy("ALFrameManager")
+        except Exception as e:
+            self.logger.error(e)
+
+    def onUnload(self):
+        self.isRunning = False
+
+    def _getTabletService(self):
+        tabletService = None
+        try:
+            tabletService = self.session().service("ALTabletService")
+        except Exception as e:
+            self.logger.error(e)
+        return tabletService
+
+    def _getAppName(self):
+        import os
+        if self.frameManager:
+            behaviorPath = os.path.normpath(self.frameManager.getBehaviorPath(self.behaviorId))
+            if os.path.isdir(behaviorPath):
+               behaviorPath = os.path.join(behaviorPath, "")
+            appsFolderFragment = os.path.join("PackageManager", "apps")
+            if not (appsFolderFragment in behaviorPath):
+                    self.logger.error("appsFolderFragment is not in behaviorPath")
+                    return None
+            fragment = behaviorPath.split(appsFolderFragment, 1)[1]
+            fragment = fragment.split("/")[1]
+            return fragment.lstrip("\\/")
+        else:
+            self.logger.warning("No ALFrameManager")
+            return None
+
+    def onInput_onStart(self):
+        if self.isRunning:
+            return # already running, nothing to do
+        self.isRunning = True
+        # We create TabletService here in order to avoid
+        # problems with connections and disconnections of the tablet during the life of the application
+        tabletService = self._getTabletService()
+        appName = self._getAppName()
+        state = False
+        if appName:
+            if tabletService:
+                if tabletService.loadApplication(appName):
+                    self.logger.info("Successfully set application: %s" % appName)
+                    tabletService.showWebview()
+                    state = True
+                else:
+                    self.logger.warning("Got tablet service, but failed to set application: %s" % appName)
+            else:
+                self.logger.warning("Couldn't find tablet service, so can't set application: %s" % appName)
+        if state:
+            self.onSuccess()
+        else:
+            self.onFailure()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                            <Output name="onSuccess" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished successfully." id="3" />
+                            <Output name="onFailure" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished unsuccessfully." id="4" />
+                        </Box>
+                        <Box name="Log" id="1" localization="8" tooltip="Prompt the message in the debug window. You can set a prefix and a priority&#x0A;for the message in the parameters." x="243" y="155">
+                            <bitmap>media/images/box/print.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        #~ puts code for box initialization here
+        pass
+
+    def onUnload(self):
+        #~ puts code for box cleanup here
+        pass
+
+    def onInput_message(self, p):
+        sPriority = self.getParameter("Priority")
+        sMessage = self.getParameter("Message prefix")
+        if( sMessage != "" and p != None ):
+            sMessage += ": "
+        if( p != None ):
+            sMessage += str(p)
+        if( sPriority == "Fatal" ):
+            self.logger.fatal( sMessage )
+        elif( sPriority == "Error" ):
+            self.logger.error( sMessage )
+        elif( sPriority == "Warning" ):
+            self.logger.warning( sMessage )
+        elif( sPriority == "Info" ):
+            self.logger.info( sMessage )
+        elif( sPriority == "Debug" ):
+            self.logger.debug( sMessage )
+        self.onDone()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="message" type="0" type_size="1" nature="1" inner="0" tooltip='The message to print or a &quot;Bang&quot; to only print the message set as parameter.' id="2" />
+                            <Output name="onDone" type="1" type_size="1" nature="2" inner="0" tooltip="Signal sent when box behavior is finished." id="3" />
+                            <Parameter name="Message prefix" inherits_from_parent="0" content_type="3" value="Tablet" default_value="Message text" custom_choice="0" tooltip="Enter the text you want to print before the input message." id="4" />
+                            <Parameter name="Priority" inherits_from_parent="0" content_type="3" value="Info" default_value="Info" custom_choice="0" tooltip="Enter the priority of your message. If you select error, the box will get red when it will be stimulated." id="5">
+                                <Choice value="Fatal" />
+                                <Choice value="Error" />
+                                <Choice value="Warning" />
+                                <Choice value="Info" />
+                                <Choice value="Debug" />
+                            </Parameter>
+                        </Box>
+                        <Box name="Say Text" id="3" localization="8" tooltip="Say the text received on its input." x="246" y="279">
+                            <bitmap>media/images/box/interaction/say.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+        self.tts = ALProxy('ALTextToSpeech')
+        self.ttsStop = ALProxy('ALTextToSpeech', True) #Create another proxy as wait is blocking if audioout is remote
+
+    def onLoad(self):
+        self.bIsRunning = False
+        self.ids = []
+
+    def onUnload(self):
+        for id in self.ids:
+            try:
+                self.ttsStop.stop(id)
+            except:
+                pass
+        while( self.bIsRunning ):
+            time.sleep( 0.2 )
+
+    def onInput_onStart(self, p):
+        self.bIsRunning = True
+        try:
+            sentence = "\RSPD="+ str( self.getParameter("Speed (%)") ) + "\ "
+            sentence += "\VCT="+ str( self.getParameter("Voice shaping (%)") ) + "\ "
+            sentence += str(p)
+            sentence +=  "\RST\ "
+            id = self.tts.post.say(str(sentence))
+            self.ids.append(id)
+            self.tts.wait(id, 0)
+        finally:
+            try:
+                self.ids.remove(id)
+            except:
+                pass
+            if( self.ids == [] ):
+                self.onStopped() # activate output of the box
+                self.bIsRunning = False
+
+    def onInput_onStop(self):
+        self.onUnload()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" />
+                            <Input name="onStart" type="3" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" />
+                            <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when Box behavior is finished." id="4" />
+                            <Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="5" />
+                            <Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" />
+                            <Resource name="Speech" type="Lock" timeout="0" />
+                        </Box>
+                        <Link inputowner="2" indexofinput="2" outputowner="0" indexofoutput="2" />
+                        <Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="4" />
+                        <Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="5" />
+                    </Diagram>
+                </BehaviorKeyframe>
+            </BehaviorLayer>
+        </Timeline>
+    </Box>
+</ChoregrapheProject>

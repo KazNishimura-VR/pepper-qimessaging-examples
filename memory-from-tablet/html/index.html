@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <title>QiMessaging (メモリに出力)</title>
+    <script src="/libs/qimessaging/1.0/qimessaging.js"></script>
+    <script>
+      var session = new QiSession();
+      
+      function sampleButtonClicked() {
+        session.service("ALMemory").done(function (ALMemory) {
+          console.log("ALMemory取得成功");
+          ALMemory.raiseEvent("PepperQiMessaging/fromtablet", "押したね");
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div style="font-size: 6em">
+      QiMessaging (メモリに出力)
+    </div>
+    <button style="font-size: 6em" type="button" onclick="sampleButtonClicked();">メモリイベント発生</button>
+  </body>
+</html>
